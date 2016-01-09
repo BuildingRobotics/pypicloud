@@ -6,6 +6,7 @@ import time
 from contextlib import contextmanager
 from hashlib import md5
 from urllib import urlopen
+from urlparse import urlparse, urlunparse
 
 import boto.s3
 from boto.s3.key import Key
@@ -20,19 +21,31 @@ from pypicloud.util import parse_filename, getdefaults
 LOG = logging.getLogger(__name__)
 
 
+def proxy_address(url, proxy):
+    """Rebuild an address from a url so that it goes through a reverse proxy"""
+    s3_url = urlparse(url)
+    proxy_url = urlparse(proxy)
+    return urlunparse((proxy_url.scheme,
+                       proxy_url.netloc,
+                       proxy_url.path.rstrip('/') + '/' + s3_url.path.lstrip('/'),
+                       s3_url.params,
+                       s3_url.query,
+                       s3_url.fragment))
+
 class S3Storage(IStorage):
 
     """ Storage backend that uses S3 """
     test = False
 
     def __init__(self, request=None, bucket=None, expire_after=None,
-                 bucket_prefix=None, prepend_hash=None,
+                 bucket_prefix=None, prepend_hash=None, proxy_address=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
+        self.proxy_address = proxy_address
 
     @classmethod
     def configure(cls, settings):
@@ -82,6 +95,9 @@ class S3Storage(IStorage):
                      location)
             bucket = s3conn.create_bucket(aws_bucket, location=location)
         kwargs['bucket'] = bucket
+        kwargs['proxy_address'] = getdefaults(
+            settings, 'storage.proxy_address', 'aws.proxy_address', None)
+
         return kwargs
 
     def get_path(self, package):
@@ -123,7 +139,11 @@ class S3Storage(IStorage):
 
     def get_url(self, package):
         key = Key(self.bucket, self.get_path(package))
-        return key.generate_url(self.expire_after)
+        url = key.generate_url(self.expire_after)
+        if self.proxy_address:
+            return proxy_address(url, self.proxy_address)
+        else:
+            return url
 
     def download_response(self, package):
         return HTTPFound(location=self.get_url(package))
