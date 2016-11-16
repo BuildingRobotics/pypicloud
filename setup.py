@@ -16,7 +16,9 @@ CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
     'boto',
-    'distlib>=0.2.0',
+    # We're doing enough subclassing and monkey patching to where we really do
+    # need to lock this in to a specific version.
+    'distlib==0.2.3',
     'paste',
     'passlib',
     'pycrypto',
@@ -25,6 +27,7 @@ REQUIREMENTS = [
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
     'pyramid_tm',
+    'rsa',
     'six',
     'transaction',
     'zope.sqlalchemy',
@@ -47,7 +50,7 @@ if sys.version_info[:2] < (2, 7):
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.3.6',
+        version='0.4.4',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[

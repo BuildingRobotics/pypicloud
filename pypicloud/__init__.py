@@ -15,7 +15,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '0.3.6'
+__version__ = '0.4.4'
 LOG = logging.getLogger(__name__)
 
 
@@ -46,6 +46,7 @@ def _locator(request):
 def includeme(config):
     """ Set up and configure the pypicloud app """
     config.set_root_factory(Root)
+    config.add_route('health', '/health')
     config.include('pyramid_tm')
     config.include('pyramid_beaker')
     config.include('pyramid_duh')
@@ -82,11 +83,25 @@ def includeme(config):
         LOG.warn("Using deprecated option 'pypi.use_fallback'")
         use_fallback = asbool(settings['pypi.use_fallback'])
         fallback_mode = 'redirect' if use_fallback else 'none'
-    modes = ('redirect', 'cache', 'mirror', 'none')
+    always_show_upstream = settings.get('pypi.always_show_upstream')
+
+    # Using fallback=mirror is the same as fallback=cache and
+    # always_show_upstream=true
+    if always_show_upstream is None:
+        always_show_upstream = fallback_mode == 'mirror'
+    else:
+        always_show_upstream = asbool(always_show_upstream)
+    if fallback_mode == 'mirror':
+        LOG.warn("pypi.fallback = mirror is deprecated. You can now use "
+                 "pypi.fallback = cache and pypi.always_show_upstream = true")
+        fallback_mode = 'cache'
+
+    modes = ('redirect', 'cache', 'none')
     if fallback_mode not in modes:
         raise ValueError("Invalid value for 'pypi.fallback'. "
                          "Must be one of %s" % ', '.join(modes))
     config.registry.fallback = fallback_mode
+    config.registry.always_show_upstream = always_show_upstream
 
     # Special request methods
     config.add_request_method(_app_url, name='app_url')

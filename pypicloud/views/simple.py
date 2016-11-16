@@ -61,11 +61,15 @@ def package_versions(context, request):
     """ Render the links for all versions of a package """
     fallback = request.registry.fallback
     if fallback == 'redirect':
-        return _simple_redirect(context, request)
+        if request.registry.always_show_upstream:
+            return _simple_redirect_always_show(context, request)
+        else:
+            return _simple_redirect(context, request)
     elif fallback == 'cache':
-        return _simple_cache(context, request)
-    elif fallback == 'mirror':
-        return _simple_mirror(context, request)
+        if request.registry.always_show_upstream:
+            return _simple_cache_always_show(context, request)
+        else:
+            return _simple_cache(context, request)
     else:
         return _simple_serve(context, request)
 
@@ -84,7 +88,7 @@ def get_fallback_packages(request, package_name, redirect=True):
     return pkgs
 
 
-def _packages_to_dict(request, packages):
+def packages_to_dict(request, packages):
     """ Convert a list of packages to a dict used by the template """
     pkgs = {}
     for package in packages:
@@ -118,7 +122,28 @@ def _simple_redirect(context, request):
             else:
                 return request.request_login()
         else:
-            return _pkg_response(_packages_to_dict(request, packages))
+            return _pkg_response(packages_to_dict(request, packages))
+    else:
+        return _redirect(context, request)
+
+
+def _simple_redirect_always_show(context, request):
+    """ Service /simple with fallback=redirect """
+    normalized_name = normalize_name(context.name)
+    packages = request.db.all(normalized_name)
+    if packages:
+        if not request.access.has_permission(normalized_name, 'read'):
+            if request.is_logged_in:
+                return _redirect(context, request)
+            else:
+                return request.request_login()
+        else:
+            pkgs = get_fallback_packages(request, context.name)
+            stored_pkgs = packages_to_dict(request, packages)
+            # Overwrite existing package urls
+            for filename, url in six.iteritems(stored_pkgs):
+                pkgs[filename] = url
+            return _pkg_response(pkgs)
     else:
         return _redirect(context, request)
 
@@ -135,7 +160,7 @@ def _simple_cache(context, request):
 
     packages = request.db.all(normalized_name)
     if packages:
-        return _pkg_response(_packages_to_dict(request, packages))
+        return _pkg_response(packages_to_dict(request, packages))
 
     if not request.access.can_update_cache():
         if request.is_logged_in:
@@ -147,7 +172,7 @@ def _simple_cache(context, request):
         return _pkg_response(pkgs)
 
 
-def _simple_mirror(context, request):
+def _simple_cache_always_show(context, request):
     """ Service /simple with fallback=mirror """
     normalized_name = normalize_name(context.name)
 
@@ -162,7 +187,7 @@ def _simple_mirror(context, request):
         if not request.access.can_update_cache():
             if request.is_logged_in:
                 pkgs = get_fallback_packages(request, context.name)
-                stored_pkgs = _packages_to_dict(request, packages)
+                stored_pkgs = packages_to_dict(request, packages)
                 # Overwrite existing package urls
                 for filename, url in six.iteritems(stored_pkgs):
                     pkgs[filename] = url
@@ -171,7 +196,7 @@ def _simple_mirror(context, request):
                 return request.request_login()
         else:
             pkgs = get_fallback_packages(request, context.name, False)
-            stored_pkgs = _packages_to_dict(request, packages)
+            stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
             for filename, url in six.iteritems(stored_pkgs):
                 pkgs[filename] = url
@@ -198,4 +223,4 @@ def _simple_serve(context, request):
             return request.request_login()
 
     packages = request.db.all(normalized_name)
-    return _pkg_response(_packages_to_dict(request, packages))
+    return _pkg_response(packages_to_dict(request, packages))
