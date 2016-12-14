@@ -1,16 +1,16 @@
-language: python
-python: "2.7"
-services:
-  - redis-server
-  - mysql
-  - postgresql
 env:
-  - TOXENV=py26
-  - TOXENV=py27
-install:
-  - pip install tox coveralls
+  global:
+    - DOCKER_REPO=comfy/pypicloud
+services:
+  - docker
 before_script:
-  - mysql -e 'create database test;'
-script: tox
+  # Pull docker image so we can reuse layers in the build step
+  - docker pull $DOCKER_REPO
+script:
+  # Get tags for this build
+  - DOCKER_TAGS=$(./get-docker-tags.sh $DOCKER_REPO)
+  # Build and tag the sMAP docker image
+  - docker build -t current $DOCKER_TAGS .
 after_success:
-  if [ "$TOXENV" == "py27" ]; then coveralls; fi
+  # If we tagged this image, push it to Docker Hub
+  - test ! -z $DOCKER_TAGS && docker push $DOCKER_REPO

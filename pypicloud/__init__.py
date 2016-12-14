@@ -133,11 +133,17 @@ def hook_exceptions():
         sys.excepthook = traceback_formatter
 
 
+def expandvars_dict(settings):
+    """Expands all environment variables in a settings dictionary."""
+    return dict((key, os.path.expandvars(value)) for
+                key, value in settings.iteritems())
+
+
 def main(config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     hook_exceptions()
-    config = Configurator(settings=settings)
+    config = Configurator(settings=expandvars_dict(settings))
     config.include('pypicloud')
     config.scan('pypicloud.views')
     return config.make_wsgi_app()
