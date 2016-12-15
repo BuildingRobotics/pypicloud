@@ -4,15 +4,14 @@ env:
 services:
   - docker
 cache:
-  - ~/docker
+  directories:
+    - ~/docker
 before_script:
   # Log in to docker hub
   - docker login -u $DOCKER_USER -p $DOCKER_PASS
   # Get tags for this build
   - DOCKER_TAGS=$(sh get-docker-tags.sh $DOCKER_REPO)
-  - mkdir ~/docker
-  - pwd
-  - ls -l ~/docker
+  - if [[ -e ~/docker ]]; then ls -l ~/docker; fi
   - if [[ -e ~/docker/image.tar ]]; then docker load -i ~/docker/image.tar; fi
   - docker images
 script:
