@@ -1,16 +1,18 @@
-language: python
-python: "2.7"
-services:
-  - redis-server
-  - mysql
-  - postgresql
 env:
-  - TOXENV=py26
-  - TOXENV=py27
-install:
-  - pip install tox coveralls
+  global:
+    - DOCKER_REPO=comfy/pypicloud
+services:
+  - docker
 before_script:
-  - mysql -e 'create database test;'
-script: tox
+  # Log in to docker hub
+  - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  # Get tags for this build
+  - DOCKER_TAGS=$(sh get-docker-tags.sh $DOCKER_REPO)
+script:
+  # Build and tag the docker image
+  - docker build -t current $DOCKER_TAGS .
 after_success:
-  if [ "$TOXENV" == "py27" ]; then coveralls; fi
+  # Show built images
+  - docker images
+  # If we tagged this image, push it to Docker Hub
+  - test ! -z "$DOCKER_TAGS" && docker push $DOCKER_REPO
