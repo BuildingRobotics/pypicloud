@@ -12,12 +12,14 @@ before_script:
   # Get tags for this build
   - DOCKER_TAGS=$(sh get-docker-tags.sh $DOCKER_REPO)
   - if [[ -e ~/docker ]]; then ls -l ~/docker; fi
+  # Load image from cache so layers can be reused
   - if [[ -e ~/docker/image.tar ]]; then docker load -i ~/docker/image.tar; fi
   - docker images
 script:
   # Build and tag the sMAP docker image
   - docker build -t current $DOCKER_TAGS .
-  - mkdir -p ~/docker; docker save current -o ~/docker/image.tar
+  # Export the image to the cached directory
+  - mkdir -p ~/docker; docker save -o ~/docker/image.tar current $DOCKER_REPO
   - ls -l ~/docker
 after_success:
   # Show built images
