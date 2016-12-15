@@ -8,11 +8,12 @@ before_script:
   - docker login -u $DOCKER_USER -p $DOCKER_PASS
   # Pull docker image so we can reuse layers in the build step
   - docker pull $DOCKER_REPO
-script:
   # Get tags for this build
-  - DOCKER_TAGS=$(./get-docker-tags.sh $DOCKER_REPO)
+  - DOCKER_TAGS=$(sh get-docker-tags.sh $DOCKER_REPO)
+script:
   # Build and tag the sMAP docker image
   - docker build -t current $DOCKER_TAGS .
+  - docker images
 after_success:
   # If we tagged this image, push it to Docker Hub
   - test ! -z $DOCKER_TAGS && docker push $DOCKER_REPO
