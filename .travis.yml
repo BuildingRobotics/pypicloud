@@ -10,14 +10,15 @@ before_script:
   - docker login -u $DOCKER_USER -p $DOCKER_PASS
   # Get tags for this build
   - DOCKER_TAGS=$(sh get-docker-tags.sh $DOCKER_REPO)
-  - mkdir -p ~/docker
+  - mkdir ~/docker
   - pwd
   - ls -l ~/docker
   - if [[ -e ~/docker/image.tar ]]; then docker load -i ~/docker/image.tar; fi
+  - docker images
 script:
   # Build and tag the sMAP docker image
   - docker build -t current $DOCKER_TAGS .
-  - mkdir -p ~/docker; docker save current > ~/docker/image.tar
+  - mkdir -p ~/docker; docker save current -o ~/docker/image.tar
   - ls -l ~/docker
 after_success:
   # Show built images
