@@ -25,7 +25,7 @@ RUN mkdir -p /etc/my_init.d && \
     printf "#!/bin/sh\n/env/bin/pserve /app/config.ini" > /etc/my_init.d/pypicloud-uwsgi.sh && \
     chmod +x /etc/my_init.d/pypicloud-uwsgi.sh && \
     #Change /data ownership
-    chown -R /data
+    chown -R www-data:www-data /data
 
 # Use baseimage-docker's init system.
 CMD ["/sbin/my_init"]
