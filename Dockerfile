@@ -29,7 +29,12 @@ RUN mkdir -p /etc/my_init.d && \
     chmod +x /etc/my_init.d/pypicloud-uwsgi.sh && \
     #Create /data own by www-data for pypicloud.db
     mkdir /data && \
-    chown -R www-data:www-data /data
-
+    chown -R www-data:www-data /data && \
+    #Allow www-data access container environment
+    chown -R root:www-data /etc/container_environment && \
+    chmod -R 770 /etc/container_environment && \
+    chmod 660 /etc/container_environment/* && \
+    chown www-data:docker_env /etc/container_environment.sh && \
+    chown www-data:docker_env /etc/container_environment.json
 
 EXPOSE 6543
