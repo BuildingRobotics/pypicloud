@@ -1,4 +1,4 @@
-PyPI Cloud
+PyPI Cloud 
 ==========
 :Build: |build|_ |coverage|_
 :Documentation: http://pypicloud.readthedocs.org/
